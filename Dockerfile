@@ -33,8 +33,8 @@ ENV PATH="/home/user/.local/bin:/opt/venv/bin:$PATH"
 ENV PYTHONPATH=$APP_HOME
 
 # Set up a new user with UID 1000 (Hugging Face requirement)
-RUN useradd -m -u 1000 user
-WORKDIR $APP_HOME
+RUN id -u 1000 >/dev/null 2>&1 || useradd -m -u 1000 user
+WORKDIR /home/user/app
 
 # Copy virtualenv from builder
 COPY --from=builder /opt/venv /opt/venv
@@ -44,11 +44,11 @@ RUN playwright install --with-deps chromium
 
 # Prepare application directories and set permissions
 RUN mkdir -p data models logs
-COPY --chown=user:user . .
-RUN chown -R user:user $APP_HOME
+COPY --chown=1000:1000 . .
+RUN chown -R 1000:1000 /home/user/app
 
 # Switch to the non-root user
-USER user
+USER 1000
 
 EXPOSE 7860
 
