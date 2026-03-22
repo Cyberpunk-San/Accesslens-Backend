@@ -1,3 +1,13 @@
+---
+title: AccessLens Backend
+emoji: 🏎️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # AccessLens Backend — Full Documentation
 
 AccessLens is a web accessibility auditing API. It uses a seven-layer engine pipeline, a headless browser (Playwright/Chromium), and an optional AI layer to detect and report accessibility issues on any public URL. The backend is a FastAPI application backed by SQLite and optionally Redis for caching.
