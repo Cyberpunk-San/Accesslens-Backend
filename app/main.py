@@ -1,6 +1,7 @@
+import os
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.exception_handlers import http_exception_handler
 from contextlib import asynccontextmanager
 from slowapi import _rate_limit_exceeded_handler
@@ -19,6 +20,10 @@ from .engines.registry import EngineRegistry
 from .engines.wcag_engine import WCAGEngine
 from .engines.contrast_engine import ContrastEngine
 from .engines.structural_engine import StructuralEngine
+from .engines.heuristic_engine import HeuristicEngine
+from .engines.navigation_engine import NavigationEngine
+from .engines.form_engine import FormEngine
+from .engines.ai_engine import AIEngine
 from .core.logging_config import setup_logging
 from .utils.cache import cache_manager
 
@@ -76,13 +81,7 @@ app.state.report_storage = report_storage
 app.state.engine_registry = EngineRegistry()
 
 # Pre-register engines so they are available for metadata/listing immediately
-from .engines.wcag_engine import WCAGEngine
-from .engines.structural_engine import StructuralEngine
-from .engines.contrast_engine import ContrastEngine
-from .engines.heuristic_engine import HeuristicEngine
-from .engines.navigation_engine import NavigationEngine
-from .engines.form_engine import FormEngine
-from .engines.ai_engine import AIEngine
+
 
 app.state.engine_aliases = {
     "wcag": "wcag_deterministic",
@@ -124,12 +123,13 @@ async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
+    # Removed X-Frame-Options: DENY for Hugging Face compatibility
     response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
+        "default-src 'self' https://huggingface.co; "
         "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
-        "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net; "
         "img-src 'self' data: fastapi.tiangolo.com; "
+        "font-src 'self' fonts.gstatic.com; "
         "connect-src 'self' cdn.jsdelivr.net;"
     )
     response.headers["X-XSS-Protection"] = "1; mode=block"
@@ -141,21 +141,11 @@ async def add_security_headers(request: Request, call_next):
 app.include_router(router, prefix="/api/v1")
 
 
-@app.get("/")
+@app.get("/", response_class=FileResponse)
 async def root():
-    """
-    Root endpoint with API information.
-    """
-    return {
-        "name": "AccessLens API",
-        "version": app.version,
-        "documentation": "/docs",
-        "endpoints": {
-            "health": "/health",
-            "metrics": "/metrics",
-            "api_v1": "/api/v1"
-        }
-    }
+
+    static_file = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    return FileResponse(static_file)
 
 
 @app.get("/health")
