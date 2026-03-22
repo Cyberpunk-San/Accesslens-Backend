@@ -47,13 +47,14 @@ RUN mkdir -p data models logs
 COPY --chown=1000:1000 . .
 RUN chown -R 1000:1000 /home/user/app
 
-# Switch to the non-root user
-USER 1000
+# Set up entrypoint - as root
+COPY scripts/docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 7860
 
-COPY --chown=user:user scripts/docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Finally switch to the non-root user
+USER 1000
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
