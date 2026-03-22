@@ -28,28 +28,32 @@ FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV APP_HOME=/app
-ENV PATH="/opt/venv/bin:$PATH"
+ENV APP_HOME=/home/user/app
+ENV PATH="/home/user/.local/bin:/opt/venv/bin:$PATH"
 ENV PYTHONPATH=$APP_HOME
 
+# Set up a new user with UID 1000 (Hugging Face requirement)
+RUN useradd -m -u 1000 user
 WORKDIR $APP_HOME
 
 # Copy virtualenv from builder
 COPY --from=builder /opt/venv /opt/venv
 
-# Install chromium (Playwright specific)
+# Install chromium (Playwright specific) - must be root
 RUN playwright install --with-deps chromium
 
-# Copy application code
-COPY . .
-
+# Prepare application directories and set permissions
 RUN mkdir -p data models logs
+COPY --chown=user:user . .
+RUN chown -R user:user $APP_HOME
 
-EXPOSE 8000
+# Switch to the non-root user
+USER user
 
-COPY scripts/docker-entrypoint.sh /usr/local/bin/
-RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && \
-    chmod +x /usr/local/bin/docker-entrypoint.sh
+EXPOSE 7860
+
+COPY --chown=user:user scripts/docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]

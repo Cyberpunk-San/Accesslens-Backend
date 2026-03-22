@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-mkdir -p /app/data /app/models /app/logs
+mkdir -p data models logs
 
-if [ ! -f "/app/data/accesslens.db" ]; then
+if [ ! -f "data/accesslens.db" ]; then
     echo "Initializing SQLite database..."
     python scripts/setup_db.py
 fi
